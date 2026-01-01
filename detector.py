@@ -25,6 +25,11 @@ class ImageDetector:
     - Image statistics
     """
     
+    # Configuration constants
+    AI_SOFTWARE_KEYWORDS = ['midjourney', 'dall-e', 'stable diffusion', 'ai', 'generated']
+    COMMON_AI_SIZES = [512, 768, 1024, 2048]
+    CORRELATION_SAMPLE_SIZE = 1000
+    
     def __init__(self):
         self.confidence_threshold = 0.6
         
@@ -93,9 +98,9 @@ class ImageDetector:
         Missing or suspicious metadata can indicate AI generation.
         """
         try:
-            exif_data = image._getexif()
+            exif_data = image.getexif()
             
-            if exif_data is None:
+            if exif_data is None or len(exif_data) == 0:
                 # No EXIF data is suspicious
                 return 0.7
             
@@ -110,8 +115,7 @@ class ImageDetector:
                 if tag == 'Software':
                     has_software_info = True
                     # Check for AI generation software keywords
-                    if any(keyword in str(value).lower() for keyword in 
-                           ['midjourney', 'dall-e', 'stable diffusion', 'ai', 'generated']):
+                    if any(keyword in str(value).lower() for keyword in self.AI_SOFTWARE_KEYWORDS):
                         return 0.9
             
             if has_camera_info:
@@ -180,7 +184,11 @@ class ImageDetector:
             return 0.3
         else:
             # Check channel correlation (AI images often have high correlation)
-            correlation = np.corrcoef([r_channel[:1000], g_channel[:1000], b_channel[:1000]])
+            correlation = np.corrcoef([
+                r_channel[:self.CORRELATION_SAMPLE_SIZE], 
+                g_channel[:self.CORRELATION_SAMPLE_SIZE], 
+                b_channel[:self.CORRELATION_SAMPLE_SIZE]
+            ])
             avg_corr = (correlation[0, 1] + correlation[0, 2] + correlation[1, 2]) / 3
             
             if avg_corr > 0.9:
@@ -199,9 +207,8 @@ class ImageDetector:
         
         # Check image dimensions (AI often generates at specific resolutions)
         width, height = image.size
-        common_ai_sizes = [512, 768, 1024, 2048]
         
-        if width in common_ai_sizes and height in common_ai_sizes:
+        if width in self.COMMON_AI_SIZES and height in self.COMMON_AI_SIZES:
             return 0.7
         elif width == height:  # Square images common in AI generation
             return 0.6

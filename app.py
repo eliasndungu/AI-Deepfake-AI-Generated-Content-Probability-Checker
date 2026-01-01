@@ -11,7 +11,10 @@ import os
 from detector import ImageDetector
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Configuration constants
+MAX_CONTENT_LENGTH_MB = 16
+app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH_MB * 1024 * 1024  # 16MB max file size
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
 # Allowed file extensions
@@ -100,7 +103,7 @@ def health_check():
 def request_entity_too_large(error):
     """Handle file too large error."""
     return jsonify({
-        'error': 'File too large. Maximum size is 16MB.',
+        'error': f'File too large. Maximum size is {MAX_CONTENT_LENGTH_MB}MB.',
         'success': False
     }), 413
 
