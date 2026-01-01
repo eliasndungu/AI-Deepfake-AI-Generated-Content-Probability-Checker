@@ -110,4 +110,8 @@ def request_entity_too_large(error):
 
 if __name__ == '__main__':
     # Run the application
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Note: For production deployment, use a production WSGI server like gunicorn
+    # and ensure debug mode is disabled
+    import os
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)
