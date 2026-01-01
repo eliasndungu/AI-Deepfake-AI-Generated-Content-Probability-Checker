@@ -55,6 +55,17 @@ http://localhost:5000
 
 3. Upload an image using the web interface and click "Analyze Image"
 
+**Development Mode**: To enable debug mode for development, set the `FLASK_DEBUG` environment variable:
+```bash
+FLASK_DEBUG=true python app.py
+```
+
+**Production Deployment**: For production use, deploy with a production WSGI server like gunicorn:
+```bash
+pip install gunicorn
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
+```
+
 ### API Usage
 
 The application provides a REST API endpoint for programmatic access:
