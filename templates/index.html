@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Generated Content Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+        
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+        
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .preview {
+            margin: 20px 0;
+            text-align: center;
+            display: none;
+        }
+        
+        .preview img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .results {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9ff;
+            border-radius: 15px;
+        }
+        
+        .probability-score {
+            font-size: 3em;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            color: #667eea;
+        }
+        
+        .confidence-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .confidence-high {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .confidence-medium {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .confidence-low {
+            background: #f44336;
+            color: white;
+        }
+        
+        .factors {
+            margin-top: 20px;
+        }
+        
+        .factor-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+        
+        .factor-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .factor-bar {
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .factor-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+        
+        .disclaimer {
+            margin-top: 25px;
+            padding: 20px;
+            background: #fff3cd;
+            border-left: 4px solid #ff9800;
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: #856404;
+        }
+        
+        .disclaimer strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            display: none;
+            padding: 15px;
+            background: #ffebee;
+            color: #c62828;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 AI-Generated Content Detector</h1>
+        <p class="subtitle">Upload an image to analyze the probability it was created by AI</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📸</div>
+            <p><strong>Click to upload</strong> or drag and drop an image</p>
+            <p style="color: #888; margin-top: 10px;">Supported formats: PNG, JPG, JPEG, GIF, BMP (Max 16MB)</p>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        
+        <div class="preview" id="preview">
+            <img id="previewImage" src="" alt="Preview">
+        </div>
+        
+        <div style="text-align: center;">
+            <button class="btn" id="analyzeBtn" disabled>Analyze Image</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px; color: #666;">Analyzing image...</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="results" id="results">
+            <h2 style="margin-bottom: 20px; color: #333;">Analysis Results</h2>
+            
+            <div style="text-align: center;">
+                <p style="font-size: 1.2em; color: #666;">AI Generation Probability</p>
+                <div class="probability-score" id="probabilityScore">--</div>
+                <div>
+                    <span class="confidence-badge" id="confidenceBadge">--</span>
+                </div>
+            </div>
+            
+            <div class="factors">
+                <h3 style="margin-bottom: 15px; color: #333;">Contributing Factors</h3>
+                <div id="factorsList"></div>
+            </div>
+            
+            <div class="disclaimer">
+                <strong>⚠️ Important Disclaimer</strong>
+                <p id="disclaimerText"></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewImage = document.getElementById('previewImage');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const error = document.getElementById('error');
+        
+        let selectedFile = null;
+        
+        // Click to upload
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        function handleFile(file) {
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+                showError('Please select an image file');
+                return;
+            }
+            
+            selectedFile = file;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                preview.style.display = 'block';
+                analyzeBtn.disabled = false;
+                results.style.display = 'none';
+                error.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        analyzeBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            
+            // Show loading
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            error.style.display = 'none';
+            analyzeBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    showError(data.error || 'Analysis failed');
+                }
+            } catch (err) {
+                showError('Network error. Please try again.');
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        });
+        
+        function displayResults(data) {
+            // Display probability as percentage
+            const percentage = (data.probability * 100).toFixed(1);
+            document.getElementById('probabilityScore').textContent = percentage + '%';
+            
+            // Display confidence
+            const confidenceBadge = document.getElementById('confidenceBadge');
+            confidenceBadge.textContent = data.confidence.toUpperCase() + ' CONFIDENCE';
+            confidenceBadge.className = 'confidence-badge confidence-' + data.confidence;
+            
+            // Display factors
+            const factorsList = document.getElementById('factorsList');
+            factorsList.innerHTML = '';
+            
+            for (const [key, value] of Object.entries(data.factors)) {
+                const factorItem = document.createElement('div');
+                factorItem.className = 'factor-item';
+                
+                const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const percentage = (value * 100).toFixed(1);
+                
+                factorItem.innerHTML = `
+                    <div class="factor-label">${label}</div>
+                    <div class="factor-bar">
+                        <div class="factor-fill" style="width: ${percentage}%"></div>
+                    </div>
+                    <div style="text-align: right; margin-top: 5px; color: #666;">${percentage}%</div>
+                `;
+                
+                factorsList.appendChild(factorItem);
+            }
+            
+            // Display disclaimer
+            document.getElementById('disclaimerText').textContent = data.disclaimer;
+            
+            // Show results
+            results.style.display = 'block';
+        }
+        
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
